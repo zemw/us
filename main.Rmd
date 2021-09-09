@@ -1,0 +1,233 @@
+---
+title: "U.S. Economy at a Glance"
+date: August, 2021
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+librarian::shelf(Quandl, fredr, tidyquant, tidyverse, lubridate, stringr)
+ggplot2::theme_set(theme_minimal() + theme(axis.title = element_blank(), legend.title = element_blank(), legend.position = "bottom"))
+```
+
+## Industrial Production
+
+```{r}
+ip.id <- 
+  list(
+    "TCU" = "Capacity Utilization",
+    "INDPRO" = "Total Industrial production",
+    "IPDCONGD" = "Durable consumer goods", 
+    "IPNCONGD" = "Nondurable consumer goods", 
+    "IPBUSEQ" = "Business equipment", 
+    "IPMAT" = "Materials", 
+    "IPB52300S" = "Defense and space equipment", 
+    "IPB50089S"= "Energy", 
+    "IPB54100S" = "Construction supplies", 
+    "IPB54200S" = "Business supplies",
+    "IPMAN" = "Manufacturing", 
+    "IPDMAN" = "Durable manufacturing", 
+    "IPNMAN" = "Nondurable manufacturing", 
+    "IPMINE" = "Mining", 
+    "IPUTIL" = "Utilities"
+    ) 
+ip.ts <-
+  names(ip.id) %>% 
+  tq_get(get = "economic.data") %>% 
+  mutate(name = as.character(ip.id[symbol])) 
+```
+
+```{r}
+ip.ts %>% 
+  filter(symbol %in% c("TCU","INDPRO")) %>% 
+  ggplot(aes(date, price, color=name)) + 
+  facet_wrap(~name, scales = "free_y") +
+  geom_line() +
+  theme(legend.position = "none")
+```
+
+## Industrial Production by Industry
+
+```{r}
+ip.ts %>% 
+  filter(!symbol %in% c("TCU", "INDPRO", "IPMAN")) %>% 
+  ggplot(aes(date, price, color=name)) + 
+  facet_wrap(~name, scales = "free_y") +
+  geom_line() +
+  theme(legend.position = "none")
+```
+
+## Employment Overview
+
+```{r}
+emp.id <- list(
+  "UNRATE" = "Unemployment Rate",
+  "CIVPART" = "Labor Force Participation Rate",
+  "USCONS" = "Construction", 
+  "USEHS" = "Education and Healthcare", 
+  "USFIRE" = "Finance", 
+  "USGOOD" = "Goods-producing", 
+  "USGOVT" = "Government", 
+  "USINFO" = "Information",
+  "USLAH" = "Leisure and Hospitality", 
+  "USMINE" = "Mining and Logging", 
+  "USPBS" = "Professional and Business Service", 
+  "USPRIV" = "Total Private", 
+  "USSERV" = "Other Services", 
+  "USTPU" = "Trade, Transportation, Utilities", 
+  "PAYEMS" = "Total Nonfarm"
+) 
+emp.ts <- 
+  names(emp.id) %>% 
+  tq_get(get = "economic.data") %>% 
+  mutate(name = as.character(emp.id[symbol])) 
+```
+
+```{r}
+emp.ts %>% 
+  filter(symbol %in% c("UNRATE","CIVPART")) %>% 
+  ggplot(aes(date, price, col=name)) +
+  facet_wrap(~name, scales = "free_y") +
+  geom_line() +
+  theme(legend.position = "none")
+```
+
+## Employment Composition
+
+```{r}
+emp.ts %>% 
+  filter(date == last(date)) %>% 
+  filter(!symbol %in% c("UNRATE","CIVPART", "USPRIV", "PAYEMS")) %>% 
+  ggplot(aes(x="", y=price, fill=name)) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+  theme_void() + 
+  theme(legend.position = "right", legend.title = element_blank()) 
+```
+
+## Employment by Industry
+
+```{r}
+emp.ts %>% 
+  filter(!symbol %in% c("UNRATE","CIVPART", "PAYEMS")) %>%
+  ggplot(aes(date, price, col=name)) + 
+  facet_wrap(~name, scales = "free_y") +
+  geom_line() +
+  theme(legend.position = "none") 
+```
+
+## Debt/GDP
+
+```{r}
+dd.id <- list(
+  "TCMDO" = "All Sectors",
+  "TODNS" = "Nonfinancial Sectors", 
+  "CMDEBT" = "Households",
+  "TBSDODNS" = "Business",
+  "FGSDODNS" = "Federal Government", 
+  "DODFS" = "Financial Sectors",
+  "GDP" = "Gross Domestic Product"
+)
+dd.ts <- 
+  names(dd.id) %>% 
+  tq_get(get = "economic.data", from = (Sys.Date() - years(20))) %>% 
+  pivot_wider(names_from = symbol, values_from = price) %>% 
+  mutate_at(vars(TCMDO:DODFS), ~.x/GDP) %>% 
+  select(-GDP) %>% 
+  pivot_longer(-date, names_to = "symbol") %>% 
+  mutate(name = as.character(dd.id[symbol])) %>% 
+  arrange(symbol, date)
+```
+
+```{r}
+dd.ts %>% 
+  drop_na() %>% 
+  filter(symbol == "TODNS" | symbol == "TCMDO") %>% 
+  ggplot(aes(date, value, col=name)) +
+  facet_wrap(~name, scales = "free_y") +
+  geom_line() +
+  theme(legend.position = "none")
+```
+
+## Debt/GDP by Sector
+
+```{r}
+dd.ts %>% 
+  drop_na() %>% 
+  filter(symbol != "TODNS" & symbol != "TCMDO") %>% 
+  ggplot(aes(date, value, col=name)) +
+  geom_line()
+```
+
+
+## Equity Index
+
+```{r}
+eq.id = list(
+  "XLF" = "Financials", 
+  "XLE" = "Energy", 
+  "XLC" = "Communication",
+  "XLK" = "Technology",
+  "XLRE" = "Real Estate",
+  "XLI" = "Industrials",
+  "XLB" = "Basic Materials",
+  "XLV" = "Healthcare",
+  "XLP" = "Consumer Staples", 
+  "SLY" = "Consumer Discretionary",
+  "XLU" = "Utilities"
+)
+eq.ts <- 
+  names(eq.id) %>% 
+  tq_get(get = "stock.prices", from = Sys.Date() - years(1)) %>% 
+  mutate(name = as.character(eq.id[symbol])) %>% 
+  group_by(symbol) %>% 
+  mutate(index = 100*adjusted/first(adjusted)) 
+```
+
+```{r}
+eq.ts %>% 
+  ggplot(aes(date, index, col=name)) + 
+  geom_line() 
+```
+
+## Commodity Index
+
+```{r}
+com.id = list(
+  "DBE" = "Energy", 
+  "DBB" = "Industrial Metals", 
+  "DBA" = "Agriculture",
+  "GLD" = "Gold",
+  "BCI" = "All Commodities"
+)
+com.ts <- 
+  names(com.id) %>% 
+  tq_get(get = "stock.prices", from = Sys.Date() - years(1)) %>% 
+  mutate(name = as.character(com.id[symbol])) %>% 
+  group_by(symbol) %>% 
+  mutate(index = 100*adjusted/first(adjusted)) 
+```
+
+```{r}
+com.ts %>% 
+  ggplot(aes(date, index, col=name)) + 
+  geom_line() 
+```
+
+## Bond Index
+
+
+```{r}
+bd.id <- c("HYG","LQD","TLT","TIP")
+bd.ts <- 
+  bd.id %>% 
+  tq_get(get = "stock.prices", from = Sys.Date() - years(1)) %>% 
+  group_by(symbol) %>% 
+  mutate(index = 100*adjusted/first(adjusted)) 
+```
+
+```{r}
+bd.ts %>% 
+  ggplot(aes(date, index, col=symbol)) + 
+  geom_line() 
+```
