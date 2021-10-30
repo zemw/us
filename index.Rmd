@@ -1,11 +1,11 @@
 ---
 title: "U.S. Economy at a Glance"
-date: August, 2021
+date: October, 2021
 output: ioslides_presentation
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F)
+knitr::opts_chunk$set(echo = F, warning = F, message = F)
 librarian::shelf(Quandl, fredr, tidyquant, tidyverse, lubridate, stringr)
 ggplot2::theme_set(theme_minimal() + theme(axis.title = element_blank(), legend.title = element_blank(), legend.position = "bottom"))
 ```
